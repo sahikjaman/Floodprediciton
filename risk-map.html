@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Risk Map - AiRISE Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+        }
+        
+        #map {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            z-index: 1;
+        }
+        
+        .map-header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2) var(--space-3);
+            box-shadow: var(--shadow-lg);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+        
+        .map-title {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+        }
+        
+        .map-title h1 {
+            font-size: var(--font-size-xl);
+            margin: 0;
+        }
+        
+        .map-controls {
+            position: absolute;
+            top: 100px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2);
+            box-shadow: var(--shadow-lg);
+            max-width: 280px;
+        }
+        
+        .control-section {
+            margin-bottom: var(--space-2);
+        }
+        
+        .control-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .control-title {
+            font-size: var(--font-size-sm);
+            font-weight: var(--font-weight-semibold);
+            color: var(--text-secondary);
+            margin-bottom: var(--space-1);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .layer-toggle {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            padding: var(--space-1) var(--space-2);
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-1);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+        }
+        
+        .layer-toggle:hover {
+            background: var(--bg-tertiary);
+            border-color: var(--color-primary);
+        }
+        
+        .layer-toggle.active {
+            background: var(--color-primary);
+            border-color: var(--color-primary);
+            color: white;
+        }
+        
+        .layer-toggle input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        
+        .layer-toggle label {
+            flex: 1;
+            cursor: pointer;
+            font-size: var(--font-size-sm);
+        }
+        
+        .legend {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2);
+            box-shadow: var(--shadow-lg);
+            max-width: 250px;
+        }
+        
+        .legend-title {
+            font-weight: var(--font-weight-semibold);
+            margin-bottom: var(--space-2);
+            font-size: var(--font-size-sm);
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            margin-bottom: var(--space-1);
+            font-size: var(--font-size-sm);
+        }
+        
+        .legend-color {
+            width: 24px;
+            height: 16px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+        }
+        
+        .legend-gradient {
+            height: 16px;
+            border-radius: var(--radius-sm);
+            margin-bottom: var(--space-1);
+        }
+        
+        .info-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-2) var(--space-3);
+            box-shadow: var(--shadow-lg);
+            min-width: 280px;
+            max-width: 400px;
+            display: none;
+        }
+        
+        .info-panel.active {
+            display: block;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .info-close {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: var(--text-tertiary);
+        }
+        
+        .zoom-controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            display: flex;
+            gap: var(--space-1);
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-1);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .zoom-btn {
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            cursor: pointer;
+            transition: all var(--transition-fast);
+            font-size: 20px;
+        }
+        
+        .zoom-btn:hover {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+        
+        .leaflet-popup-content-wrapper {
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            border-radius: var(--radius-md);
+        }
+        
+        .leaflet-popup-content {
+            margin: var(--space-2);
+        }
+        
+        @media (max-width: 768px) {
+            .map-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            
+            .map-controls {
+                max-width: calc(100vw - 40px);
+            }
+            
+            .legend {
+                max-width: calc(100vw - 40px);
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Full-screen Map -->
+    <div id="map"></div>
+    
+    <!-- Header -->
+    <div class="map-header">
+        <div class="map-title">
+            <a href="index.html" class="btn btn-ghost">← Dashboard</a>
+            <div>
+                <h1>🗺️ Multi-Hazard Risk Map</h1>
+                <small class="text-tertiary">Real-time geospatial visualization</small>
+            </div>
+        </div>
+        
+        <div style="display: flex; gap: 12px; align-items: center;">
+            <span class="badge badge-success">Live Data</span>
+            <button class="btn btn-sm btn-primary" id="refreshMap">🔄 Refresh</button>
+            <button class="btn btn-ghost" id="darkModeToggle">
+                <span id="themeIcon">🌙</span>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Layer Controls -->
+    <div class="map-controls">
+        <div class="control-section">
+            <div class="control-title">🗂️ Map Layers</div>
+            
+            <div class="layer-toggle active" data-layer="flood">
+                <input type="checkbox" id="floodLayer" checked>
+                <label for="floodLayer">🌊 Flood Risk Zones</label>
+            </div>
+            
+            <div class="layer-toggle" data-layer="subsidence">
+                <input type="checkbox" id="subsidenceLayer">
+                <label for="subsidenceLayer">📉 Subsidence Hotspots</label>
+            </div>
+            
+            <div class="layer-toggle" data-layer="heat">
+                <input type="checkbox" id="heatLayer">
+                <label for="heatLayer">🌡️ Urban Heat Island</label>
+            </div>
+            
+            <div class="layer-toggle active" data-layer="sensors">
+                <input type="checkbox" id="sensorsLayer" checked>
+                <label for="sensorsLayer">📍 Sensor Locations</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <div class="control-title">⚙️ Display Options</div>
+            
+            <div class="layer-toggle" data-option="labels">
+                <input type="checkbox" id="showLabels" checked>
+                <label for="showLabels">🏷️ Show Labels</label>
+            </div>
+            
+            <div class="layer-toggle" data-option="grid">
+                <input type="checkbox" id="showGrid">
+                <label for="showGrid">📐 Show Grid</label>
+            </div>
+        </div>
+        
+        <div class="control-section">
+            <button class="btn btn-sm btn-full btn-outline" id="resetView">
+                🎯 Reset View
+            </button>
+        </div>
+    </div>
+    
+    <!-- Legend -->
+    <div class="legend">
+        <div class="legend-title" id="legendTitle">🌊 Flood Risk Zones</div>
+        <div id="legendContent">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #DC2626;"></div>
+                <span>High Risk (&gt;70%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #EA580C;"></div>
+                <span>Moderate (40-70%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #F59E0B;"></div>
+                <span>Low (20-40%)</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #16A34A;"></div>
+                <span>Safe (&lt;20%)</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Info Panel -->
+    <div class="info-panel" id="infoPanel">
+        <button class="info-close" onclick="closeInfoPanel()">×</button>
+        <div id="infoPanelContent">
+            <!-- Dynamic content -->
+        </div>
+    </div>
+    
+    <!-- Zoom Controls -->
+    <div class="zoom-controls">
+        <button class="zoom-btn" id="zoomIn">+</button>
+        <button class="zoom-btn" id="zoomOut">−</button>
+        <button class="zoom-btn" id="locate">📍</button>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    
+    <script>
+        let map;
+        let layers = {
+            flood: null,
+            subsidence: null,
+            heat: null,
+            sensors: L.layerGroup()
+        };
+        
+        // Jakarta center coordinates
+        const jakartaCenter = [-6.2088, 106.8456];
+        
+        // Initialize map
+        document.addEventListener('DOMContentLoaded', function() {
+            initMap();
+            setupControls();
+            setupDarkMode();
+        });
+        
+        function initMap() {
+            map = L.map('map', {
+                zoomControl: false
+            }).setView(jakartaCenter, 11);
+            
+            // Base map
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 18
+            }).addTo(map);
+            
+            // Initialize layers
+            createFloodLayer();
+            createSensorsLayer();
+            
+            // Add default layers
+            layers.flood.addTo(map);
+            layers.sensors.addTo(map);
+        }
+        
+        function createFloodLayer() {
+            // Flood risk zones (polygons)
+            const floodZones = [
+                {
+                    name: 'Pluit Coastal Area',
+                    coords: [
+                        [-6.1090, 106.7988],
+                        [-6.1290, 106.7988],
+                        [-6.1290, 106.8188],
+                        [-6.1090, 106.8188]
+                    ],
+                    risk: 'high',
+                    probability: 85,
+                    color: '#DC2626'
+                },
+                {
+                    name: 'Kampung Melayu',
+                    coords: [
+                        [-6.2150, 106.8550],
+                        [-6.2350, 106.8550],
+                        [-6.2350, 106.8750],
+                        [-6.2150, 106.8750]
+                    ],
+                    risk: 'moderate',
+                    probability: 55,
+                    color: '#EA580C'
+                },
+                {
+                    name: 'Kelapa Gading',
+                    coords: [
+                        [-6.1400, 106.8900],
+                        [-6.1600, 106.8900],
+                        [-6.1600, 106.9100],
+                        [-6.1400, 106.9100]
+                    ],
+                    risk: 'low',
+                    probability: 30,
+                    color: '#F59E0B'
+                }
+            ];
+            
+            layers.flood = L.layerGroup();
+            
+            floodZones.forEach(zone => {
+                const polygon = L.polygon(zone.coords, {
+                    color: zone.color,
+                    fillColor: zone.color,
+                    fillOpacity: 0.4,
+                    weight: 2
+                });
+                
+                polygon.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin-bottom: 8px; color: var(--text-primary);">${zone.name}</h3>
+                        <p style="margin: 4px 0;"><strong>Risk Level:</strong> ${zone.risk.toUpperCase()}</p>
+                        <p style="margin: 4px 0;"><strong>Flood Probability:</strong> ${zone.probability}%</p>
+                        <p style="margin: 4px 0;"><strong>Area:</strong> ${calculateArea(zone.coords).toFixed(2)} km²</p>
+                        <button class="btn btn-sm btn-primary" style="margin-top: 8px; width: 100%;" onclick="viewZoneDetails('${zone.name}')">View Details</button>
+                    </div>
+                `);
+                
+                polygon.on('click', function() {
+                    showInfoPanel('flood', zone);
+                });
+                
+                polygon.addTo(layers.flood);
+            });
+        }
+        
+        function createSubsidenceLayer() {
+            // Subsidence heatmap (circles)
+            const subsidencePoints = [
+                { coords: [-6.1190, 106.8088], rate: 12, name: 'North Jakarta Coast' },
+                { coords: [-6.2369, 106.7876], rate: 8, name: 'Pondok Indah' },
+                { coords: [-6.1750, 106.8300], rate: 6, name: 'Central Jakarta' },
+                { coords: [-6.2500, 106.8500], rate: 9, name: 'South Jakarta' }
+            ];
+            
+            layers.subsidence = L.layerGroup();
+            
+            subsidencePoints.forEach(point => {
+                const circle = L.circle(point.coords, {
+                    radius: point.rate * 200,
+                    color: point.rate > 10 ? '#DC2626' : point.rate > 7 ? '#EA580C' : '#F59E0B',
+                    fillColor: point.rate > 10 ? '#DC2626' : point.rate > 7 ? '#EA580C' : '#F59E0B',
+                    fillOpacity: 0.4,
+                    weight: 2
+                });
+                
+                circle.bindPopup(`
+                    <div>
+                        <h3 style="margin-bottom: 8px;">${point.name}</h3>
+                        <p><strong>Subsidence Rate:</strong> ${point.rate} cm/year</p>
+                        <p><strong>Status:</strong> ${point.rate > 10 ? 'Critical' : point.rate > 7 ? 'High' : 'Moderate'}</p>
+                    </div>
+                `);
+                
+                circle.addTo(layers.subsidence);
+            });
+        }
+        
+        function createHeatLayer() {
+            // Urban Heat Island (temperature gradient)
+            const heatZones = [
+                {
+                    coords: [
+                        [-6.1500, 106.8000],
+                        [-6.1700, 106.8000],
+                        [-6.1700, 106.8300],
+                        [-6.1500, 106.8300]
+                    ],
+                    temp: 36,
+                    color: '#DC2626'
+                },
+                {
+                    coords: [
+                        [-6.2000, 106.8200],
+                        [-6.2200, 106.8200],
+                        [-6.2200, 106.8500],
+                        [-6.2000, 106.8500]
+                    ],
+                    temp: 34,
+                    color: '#EA580C'
+                },
+                {
+                    coords: [
+                        [-6.2400, 106.7800],
+                        [-6.2600, 106.7800],
+                        [-6.2600, 106.8100],
+                        [-6.2400, 106.8100]
+                    ],
+                    temp: 31,
+                    color: '#F59E0B'
+                }
+            ];
+            
+            layers.heat = L.layerGroup();
+            
+            heatZones.forEach(zone => {
+                const polygon = L.polygon(zone.coords, {
+                    color: zone.color,
+                    fillColor: zone.color,
+                    fillOpacity: 0.3,
+                    weight: 1
+                });
+                
+                polygon.bindPopup(`
+                    <div>
+                        <h3>Urban Heat Zone</h3>
+                        <p><strong>Temperature:</strong> ${zone.temp}°C</p>
+                        <p><strong>Status:</strong> ${zone.temp > 35 ? 'Extreme' : zone.temp > 33 ? 'High' : 'Moderate'}</p>
+                    </div>
+                `);
+                
+                polygon.addTo(layers.heat);
+            });
+        }
+        
+        function createSensorsLayer() {
+            const sensors = [
+                { id: 'S001', name: 'Pondok Indah', coords: [-6.2369, 106.7876], status: 'normal' },
+                { id: 'S002', name: 'Pluit', coords: [-6.1190, 106.8088], status: 'alert' },
+                { id: 'S003', name: 'Jakarta Utara', coords: [-6.1270, 106.8384], status: 'normal' },
+                { id: 'S004', name: 'Kemang', coords: [-6.2650, 106.8170], status: 'warning' },
+                { id: 'S005', name: 'Menteng', coords: [-6.1900, 106.8350], status: 'normal' },
+                { id: 'S006', name: 'Kelapa Gading', coords: [-6.1500, 106.9000], status: 'normal' },
+                { id: 'S007', name: 'Cengkareng', coords: [-6.1400, 106.7400], status: 'warning' },
+                { id: 'S008', name: 'Tebet', coords: [-6.2350, 106.8600], status: 'normal' }
+            ];
+            
+            sensors.forEach(sensor => {
+                const color = sensor.status === 'alert' ? '#DC2626' : 
+                             sensor.status === 'warning' ? '#EA580C' : '#16A34A';
+                
+                const icon = L.divIcon({
+                    className: 'sensor-marker',
+                    html: `<div style="
+                        background: ${color};
+                        width: 24px;
+                        height: 24px;
+                        border-radius: 50%;
+                        border: 3px solid white;
+                        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+                        animation: ${sensor.status === 'alert' ? 'ping 1s infinite' : 'none'};
+                    "></div>`,
+                    iconSize: [24, 24],
+                    iconAnchor: [12, 12]
+                });
+                
+                const marker = L.marker(sensor.coords, { icon: icon });
+                
+                marker.bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin-bottom: 8px;">${sensor.name}</h3>
+                        <p style="margin: 4px 0;"><strong>Sensor ID:</strong> ${sensor.id}</p>
+                        <p style="margin: 4px 0;"><strong>Status:</strong> 
+                            <span style="color: ${color}; font-weight: bold;">${sensor.status.toUpperCase()}</span>
+                        </p>
+                        <p style="margin: 4px 0;"><strong>Coordinates:</strong> ${sensor.coords[0].toFixed(4)}, ${sensor.coords[1].toFixed(4)}</p>
+                        <button class="btn btn-sm btn-primary" style="margin-top: 8px; width: 100%;" 
+                                onclick="window.location.href='sensor-detail.html?sensor=${sensor.id}'">
+                            View Details
+                        </button>
+                    </div>
+                `);
+                
+                marker.on('click', function() {
+                    showInfoPanel('sensor', sensor);
+                });
+                
+                marker.addTo(layers.sensors);
+            });
+        }
+        
+        function calculateArea(coords) {
+            // Simplified area calculation in km²
+            const latDiff = Math.abs(coords[0][0] - coords[2][0]);
+            const lngDiff = Math.abs(coords[0][1] - coords[2][1]);
+            return latDiff * lngDiff * 12100; // Approximate
+        }
+        
+        function setupControls() {
+            // Layer toggles
+            document.querySelectorAll('.layer-toggle input').forEach(toggle => {
+                toggle.addEventListener('change', function() {
+                    const layerName = this.id.replace('Layer', '');
+                    const layerToggle = this.closest('.layer-toggle');
+                    
+                    if (this.checked) {
+                        layerToggle.classList.add('active');
+                        
+                        if (!layers[layerName]) {
+                            if (layerName === 'subsidence') createSubsidenceLayer();
+                            if (layerName === 'heat') createHeatLayer();
+                        }
+                        
+                        if (layers[layerName]) {
+                            layers[layerName].addTo(map);
+                        }
+                        
+                        updateLegend(layerName);
+                    } else {
+                        layerToggle.classList.remove('active');
+                        if (layers[layerName]) {
+                            map.removeLayer(layers[layerName]);
+                        }
+                    }
+                });
+            });
+            
+            // Zoom controls
+            document.getElementById('zoomIn').addEventListener('click', () => map.zoomIn());
+            document.getElementById('zoomOut').addEventListener('click', () => map.zoomOut());
+            document.getElementById('locate').addEventListener('click', () => {
+                map.setView(jakartaCenter, 11);
+            });
+            
+            // Reset view
+            document.getElementById('resetView').addEventListener('click', () => {
+                map.setView(jakartaCenter, 11);
+                // Reset all layers
+                document.querySelectorAll('.layer-toggle input').forEach(toggle => {
+                    if (toggle.id === 'floodLayer' || toggle.id === 'sensorsLayer') {
+                        toggle.checked = true;
+                        toggle.dispatchEvent(new Event('change'));
+                    } else {
+                        toggle.checked = false;
+                        toggle.dispatchEvent(new Event('change'));
+                    }
+                });
+            });
+            
+            // Refresh map
+            document.getElementById('refreshMap').addEventListener('click', () => {
+                location.reload();
+            });
+        }
+        
+        function updateLegend(layerName) {
+            const legendTitle = document.getElementById('legendTitle');
+            const legendContent = document.getElementById('legendContent');
+            
+            const legends = {
+                flood: {
+                    title: '🌊 Flood Risk Zones',
+                    items: [
+                        { color: '#DC2626', label: 'High Risk (>70%)' },
+                        { color: '#EA580C', label: 'Moderate (40-70%)' },
+                        { color: '#F59E0B', label: 'Low (20-40%)' },
+                        { color: '#16A34A', label: 'Safe (<20%)' }
+                    ]
+                },
+                subsidence: {
+                    title: '📉 Subsidence Rate',
+                    items: [
+                        { color: '#DC2626', label: 'Critical (>10 cm/yr)' },
+                        { color: '#EA580C', label: 'High (7-10 cm/yr)' },
+                        { color: '#F59E0B', label: 'Moderate (4-7 cm/yr)' },
+                        { color: '#16A34A', label: 'Low (<4 cm/yr)' }
+                    ]
+                },
+                heat: {
+                    title: '🌡️ Urban Heat Island',
+                    items: [
+                        { color: '#DC2626', label: 'Extreme (>35°C)' },
+                        { color: '#EA580C', label: 'High (33-35°C)' },
+                        { color: '#F59E0B', label: 'Moderate (30-33°C)' },
+                        { color: '#16A34A', label: 'Normal (<30°C)' }
+                    ]
+                },
+                sensors: {
+                    title: '📍 Sensor Status',
+                    items: [
+                        { color: '#DC2626', label: 'Alert - Action Required' },
+                        { color: '#EA580C', label: 'Warning - Monitor' },
+                        { color: '#16A34A', label: 'Normal - Operational' },
+                        { color: '#6B7280', label: 'Offline' }
+                    ]
+                }
+            };
+            
+            const legend = legends[layerName] || legends.flood;
+            legendTitle.textContent = legend.title;
+            
+            legendContent.innerHTML = legend.items.map(item => `
+                <div class="legend-item">
+                    <div class="legend-color" style="background: ${item.color};"></div>
+                    <span>${item.label}</span>
+                </div>
+            `).join('');
+        }
+        
+        function showInfoPanel(type, data) {
+            const panel = document.getElementById('infoPanel');
+            const content = document.getElementById('infoPanelContent');
+            
+            let html = '';
+            
+            if (type === 'flood') {
+                html = `
+                    <h3 style="margin-bottom: 12px; color: var(--text-primary);">🌊 ${data.name}</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div>
+                            <small style="color: var(--text-tertiary);">Risk Level</small>
+                            <p style="font-weight: 600; color: ${data.color};">${data.risk.toUpperCase()}</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Flood Probability</small>
+                            <p style="font-weight: 600;">${data.probability}%</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Estimated Area</small>
+                            <p style="font-weight: 600;">${calculateArea(data.coords).toFixed(2)} km²</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Last Assessment</small>
+                            <p style="font-weight: 600;">5 minutes ago</p>
+                        </div>
+                    </div>
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <small style="color: var(--text-tertiary);">Recommendations:</small>
+                        <ul style="margin-top: 8px; padding-left: 20px; font-size: 14px;">
+                            <li>Monitor water levels continuously</li>
+                            <li>Activate drainage systems</li>
+                            <li>Alert nearby residents</li>
+                        </ul>
+                    </div>
+                `;
+            } else if (type === 'sensor') {
+                html = `
+                    <h3 style="margin-bottom: 12px;">📍 ${data.name}</h3>
+                    <div style="display: grid; gap: 8px;">
+                        <div>
+                            <small style="color: var(--text-tertiary);">Sensor ID</small>
+                            <p style="font-weight: 600;">${data.id}</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Status</small>
+                            <p style="font-weight: 600; color: ${
+                                data.status === 'alert' ? '#DC2626' : 
+                                data.status === 'warning' ? '#EA580C' : '#16A34A'
+                            };">${data.status.toUpperCase()}</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Coordinates</small>
+                            <p style="font-weight: 600; font-size: 12px;">${data.coords[0].toFixed(4)}, ${data.coords[1].toFixed(4)}</p>
+                        </div>
+                        <div>
+                            <small style="color: var(--text-tertiary);">Last Update</small>
+                            <p style="font-weight: 600;">2 minutes ago</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-primary" style="width: 100%; margin-top: 16px;" 
+                            onclick="window.location.href='sensor-detail.html?sensor=${data.id}'">
+                        View Full Details →
+                    </button>
+                `;
+            }
+            
+            content.innerHTML = html;
+            panel.classList.add('active');
+        }
+        
+        function closeInfoPanel() {
+            document.getElementById('infoPanel').classList.remove('active');
+        }
+        
+        function viewZoneDetails(zoneName) {
+            alert('Viewing details for: ' + zoneName);
+        }
+        
+        function setupDarkMode() {
+            const toggle = document.getElementById('darkModeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+            
+            // Update map tiles for dark mode
+            if (currentTheme === 'dark') {
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+                    attribution: '© OpenStreetMap contributors © CARTO',
+                    maxZoom: 18
+                }).addTo(map);
+            }
+            
+            toggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+                
+                // Update map tiles
+                map.eachLayer((layer) => {
+                    if (layer instanceof L.TileLayer) {
+                        map.removeLayer(layer);
+                    }
+                });
+                
+                const tileUrl = newTheme === 'dark' 
+                    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                    : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+                
+                L.tileLayer(tileUrl, {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 18
+                }).addTo(map);
+            });
+        }
+        
+        // Add ping animation for alert sensors
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes ping {
+                75%, 100% {
+                    transform: scale(2);
+                    opacity: 0;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html>
