@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sensor Details - AiRISE Dashboard</title>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/dark-mode.css">
+    <link rel="stylesheet" href="css/responsive.css">
+    
+    <style>
+        /* Gauge Widget Styles */
+        .gauge-container {
+            position: relative;
+            width: 200px;
+            height: 120px;
+            margin: 0 auto;
+        }
+        
+        .gauge-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .gauge-value {
+            position: absolute;
+            top: 70%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 28px;
+            font-weight: bold;
+        }
+        
+        .gauge-label {
+            position: absolute;
+            top: 85%;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 14px;
+            color: var(--text-tertiary);
+        }
+        
+        /* Mini Chart Styles */
+        .mini-chart {
+            height: 60px;
+            position: relative;
+        }
+        
+        .mini-chart canvas {
+            height: 100% !important;
+        }
+        
+        /* Color-coded temperature */
+        .temp-display {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto;
+            border-radius: 50%;
+            font-size: 32px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        
+        .temp-cold { background: linear-gradient(135deg, #3B82F6, #60A5FA); color: white; }
+        .temp-normal { background: linear-gradient(135deg, #16A34A, #4ADE80); color: white; }
+        .temp-warm { background: linear-gradient(135deg, #EA580C, #FB923C); color: white; }
+        .temp-hot { background: linear-gradient(135deg, #DC2626, #EF4444); color: white; }
+        
+        /* Reading Cards */
+        .reading-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            padding: var(--space-3);
+            text-align: center;
+        }
+        
+        .reading-title {
+            font-size: var(--font-size-sm);
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: var(--space-2);
+        }
+        
+        .reading-content {
+            margin: var(--space-2) 0;
+        }
+        
+        /* Countdown Timer */
+        .countdown {
+            font-size: var(--font-size-sm);
+            color: var(--text-tertiary);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-container">
+                <div class="header-logo">
+                    <a href="index.html" class="btn btn-ghost">← Back</a>
+                    <div>
+                        <h1 class="header-title">Sensor Details</h1>
+                        <p class="header-subtitle" id="sensorLocation">Loading...</p>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <span class="badge" id="sensorStatus">NORMAL</span>
+                    <button class="btn btn-ghost" id="darkModeToggle">
+                        <span id="themeIcon">🌙</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Sensor Info Card -->
+        <section class="card mb-3 fade-in">
+            <div class="card-header">
+                <h2 class="card-title" id="sensorName">Sensor S001</h2>
+                <div class="flex gap-2">
+                    <button class="btn btn-sm btn-primary" id="exportBtn">📥 Export Data</button>
+                    <button class="btn btn-sm btn-outline" id="refreshBtn">🔄 Refresh</button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="grid grid-cols-4 gap-2">
+                    <div>
+                        <small class="text-tertiary">Sensor ID</small>
+                        <p id="sensorId" class="font-semibold">S001</p>
+                    </div>
+                    <div>
+                        <small class="text-tertiary">Installation Date</small>
+                        <p id="installDate" class="font-semibold">Jan 15, 2024</p>
+                    </div>
+                    <div>
+                        <small class="text-tertiary">Coordinates</small>
+                        <p id="sensorCoords" class="font-semibold">-6.2369, 106.7876</p>
+                    </div>
+                    <div>
+                        <small class="text-tertiary">Last Update</small>
+                        <p class="font-semibold">
+                            <span id="lastUpdate">5 min ago</span>
+                            <span class="countdown" id="countdown">(updating in 3:45)</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Real-time Readings Grid -->
+        <section class="grid grid-cols-4 gap-3 mb-3">
+            <!-- Water Level Gauge -->
+            <div class="reading-card">
+                <div class="reading-title">💧 Water Level</div>
+                <div class="reading-content">
+                    <div class="gauge-container">
+                        <svg class="gauge-svg" id="waterGauge" viewBox="0 0 200 120">
+                            <!-- Gauge will be drawn by JavaScript -->
+                        </svg>
+                        <div class="gauge-value" id="waterValue">75</div>
+                        <div class="gauge-label">cm</div>
+                    </div>
+                </div>
+                <div class="metric-trend">
+                    <span class="metric-trend-up">▲ +5cm</span>
+                    <small>from 1h ago</small>
+                </div>
+            </div>
+
+            <!-- Rainfall Mini Chart -->
+            <div class="reading-card">
+                <div class="reading-title">🌧️ Rainfall</div>
+                <div class="reading-content">
+                    <div style="font-size: 32px; font-weight: bold; margin: 10px 0;">
+                        <span id="rainfallValue">12</span><small style="font-size: 16px;"> mm/h</small>
+                    </div>
+                    <div class="mini-chart">
+                        <canvas id="rainfallChart"></canvas>
+                    </div>
+                </div>
+                <div class="metric-trend">
+                    <span class="text-warning">Moderate Rain</span>
+                </div>
+            </div>
+
+            <!-- Temperature Color-Coded -->
+            <div class="reading-card">
+                <div class="reading-title">🌡️ Temperature</div>
+                <div class="reading-content">
+                    <div class="temp-display temp-hot" id="tempDisplay">
+                        <span id="tempValue">35</span>°C
+                    </div>
+                </div>
+                <div class="metric-trend">
+                    <span class="text-alert">Heat Warning</span>
+                </div>
+            </div>
+
+            <!-- Soil Moisture Progress Bar -->
+            <div class="reading-card">
+                <div class="reading-title">💦 Soil Moisture</div>
+                <div class="reading-content">
+                    <div style="font-size: 32px; font-weight: bold; margin: 20px 0;">
+                        <span id="moistureValue">65</span><small style="font-size: 16px;">%</small>
+                    </div>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar progress-bar-success" id="moistureBar" style="width: 65%;"></div>
+                    </div>
+                </div>
+                <div class="metric-trend">
+                    <span class="text-success">Optimal</span>
+                </div>
+            </div>
+        </section>
+
+        <!-- 24-Hour Time Series Charts -->
+        <section class="card mb-3">
+            <div class="card-header">
+                <h2 class="card-title">📈 24-Hour Historical Data</h2>
+                <div class="tabs-list">
+                    <button class="tabs-item active" data-chart="water">Water Level</button>
+                    <button class="tabs-item" data-chart="rainfall">Rainfall</button>
+                    <button class="tabs-item" data-chart="temperature">Temperature</button>
+                    <button class="tabs-item" data-chart="moisture">Soil Moisture</button>
+                </div>
+            </div>
+            <div class="chart-container" style="height: 300px;">
+                <canvas id="timeSeriesChart"></canvas>
+            </div>
+            <div class="card-footer">
+                <div class="grid grid-cols-3 gap-2 text-center">
+                    <div>
+                        <small class="text-tertiary">Min</small>
+                        <p class="font-semibold" id="chartMin">--</p>
+                    </div>
+                    <div>
+                        <small class="text-tertiary">Average</small>
+                        <p class="font-semibold" id="chartAvg">--</p>
+                    </div>
+                    <div>
+                        <small class="text-tertiary">Max</small>
+                        <p class="font-semibold" id="chartMax">--</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Alert History -->
+        <section class="card mb-4">
+            <div class="card-header">
+                <h2 class="card-title">🚨 Recent Alerts (Last 24h)</h2>
+                <span class="badge badge-alert" id="alertCount">5 Alerts</span>
+            </div>
+            <div class="card-body">
+                <div id="alertHistory" class="alerts-list">
+                    <!-- Alerts will be dynamically inserted -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-content">
+            <p class="footer-text">© 2025 AiRISE System • Sensor Monitoring Dashboard</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/data.js"></script>
+    
+    <script>
+        // Get sensor ID from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const sensorId = urlParams.get('sensor') || 'S001';
+        
+        // Sensor data (simulation)
+        const sensorData = {
+            'S001': {
+                name: 'Pondok Indah Station',
+                location: 'South Jakarta',
+                coords: '-6.2369, 106.7876',
+                installDate: 'Jan 15, 2024',
+                waterLevel: 75,
+                rainfall: 12,
+                temperature: 35,
+                moisture: 65
+            },
+            'S002': {
+                name: 'Pluit Coastal Station',
+                location: 'North Jakarta',
+                coords: '-6.1190, 106.8088',
+                installDate: 'Feb 10, 2024',
+                waterLevel: 95,
+                rainfall: 18,
+                temperature: 32,
+                moisture: 78
+            },
+            'S003': {
+                name: 'Jakarta Utara Hub',
+                location: 'North Jakarta',
+                coords: '-6.1270, 106.8384',
+                installDate: 'Mar 05, 2024',
+                waterLevel: 68,
+                rainfall: 8,
+                temperature: 30,
+                moisture: 55
+            }
+        };
+        
+        const currentSensor = sensorData[sensorId] || sensorData['S001'];
+        
+        // Initialize page
+        document.addEventListener('DOMContentLoaded', function() {
+            loadSensorInfo();
+            drawWaterGauge();
+            initializeCharts();
+            loadAlertHistory();
+            startCountdown();
+            setupDarkMode();
+            
+            // Tab switching
+            document.querySelectorAll('.tabs-item').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.tabs-item').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    updateTimeSeriesChart(tab.dataset.chart);
+                });
+            });
+            
+            // Refresh button
+            document.getElementById('refreshBtn').addEventListener('click', refreshData);
+        });
+        
+        function loadSensorInfo() {
+            document.getElementById('sensorName').textContent = currentSensor.name;
+            document.getElementById('sensorLocation').textContent = currentSensor.location;
+            document.getElementById('sensorId').textContent = sensorId;
+            document.getElementById('sensorCoords').textContent = currentSensor.coords;
+            document.getElementById('installDate').textContent = currentSensor.installDate;
+            
+            // Update status badge
+            const status = currentSensor.waterLevel > 90 ? 'ALERT' : 
+                          currentSensor.waterLevel > 70 ? 'CAUTION' : 'NORMAL';
+            const statusBadge = document.getElementById('sensorStatus');
+            statusBadge.textContent = status;
+            statusBadge.className = 'badge ' + 
+                (status === 'ALERT' ? 'badge-alert' : 
+                 status === 'CAUTION' ? 'badge-warning' : 'badge-success');
+            
+            // Update readings
+            document.getElementById('waterValue').textContent = currentSensor.waterLevel;
+            document.getElementById('rainfallValue').textContent = currentSensor.rainfall;
+            document.getElementById('tempValue').textContent = currentSensor.temperature;
+            document.getElementById('moistureValue').textContent = currentSensor.moisture;
+            document.getElementById('moistureBar').style.width = currentSensor.moisture + '%';
+            
+            // Update temperature color
+            const tempDisplay = document.getElementById('tempDisplay');
+            tempDisplay.className = 'temp-display ' + 
+                (currentSensor.temperature < 20 ? 'temp-cold' :
+                 currentSensor.temperature < 28 ? 'temp-normal' :
+                 currentSensor.temperature < 33 ? 'temp-warm' : 'temp-hot');
+        }
+        
+        function drawWaterGauge() {
+            const gauge = document.getElementById('waterGauge');
+            const value = currentSensor.waterLevel;
+            const maxValue = 120;
+            const percentage = (value / maxValue) * 100;
+            const angle = (percentage / 100) * 180;
+            
+            // Draw gauge background arc
+            const arc = describeArc(100, 100, 80, 180, 0);
+            gauge.innerHTML = `
+                <path d="${arc}" fill="none" stroke="var(--bg-tertiary)" stroke-width="20"/>
+                <path d="${describeArc(100, 100, 80, 180, 180 - angle)}" 
+                      fill="none" 
+                      stroke="${value > 90 ? '#DC2626' : value > 70 ? '#EA580C' : '#16A34A'}" 
+                      stroke-width="20" 
+                      stroke-linecap="round"/>
+            `;
+        }
+        
+        function describeArc(x, y, radius, startAngle, endAngle) {
+            const start = polarToCartesian(x, y, radius, endAngle);
+            const end = polarToCartesian(x, y, radius, startAngle);
+            const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+            return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} 0 ${end.x} ${end.y}`;
+        }
+        
+        function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+            const angleInRadians = (angleInDegrees - 90) * Math.PI / 180.0;
+            return {
+                x: centerX + (radius * Math.cos(angleInRadians)),
+                y: centerY + (radius * Math.sin(angleInRadians))
+            };
+        }
+        
+        let rainfallChart, timeSeriesChart;
+        
+        function initializeCharts() {
+            // Rainfall mini chart
+            const rainfallCtx = document.getElementById('rainfallChart').getContext('2d');
+            const rainfallData = Array.from({length: 12}, () => Math.random() * 20);
+            
+            rainfallChart = new Chart(rainfallCtx, {
+                type: 'line',
+                data: {
+                    labels: Array.from({length: 12}, (_, i) => ''),
+                    datasets: [{
+                        data: rainfallData,
+                        borderColor: '#3B82F6',
+                        backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false }
+                    }
+                }
+            });
+            
+            // Time series chart
+            updateTimeSeriesChart('water');
+        }
+        
+        function updateTimeSeriesChart(type) {
+            const ctx = document.getElementById('timeSeriesChart').getContext('2d');
+            const hours = Array.from({length: 24}, (_, i) => {
+                const d = new Date();
+                d.setHours(d.getHours() - (23 - i));
+                return d.getHours() + ':00';
+            });
+            
+            let data, label, color, unit;
+            switch(type) {
+                case 'water':
+                    data = Array.from({length: 24}, () => 60 + Math.random() * 30);
+                    label = 'Water Level (cm)';
+                    color = '#3B82F6';
+                    unit = 'cm';
+                    break;
+                case 'rainfall':
+                    data = Array.from({length: 24}, () => Math.random() * 20);
+                    label = 'Rainfall (mm/h)';
+                    color = '#6366F1';
+                    unit = 'mm/h';
+                    break;
+                case 'temperature':
+                    data = Array.from({length: 24}, (_, i) => 
+                        25 + 8 * Math.sin((i - 6) * Math.PI / 12) + Math.random() * 2);
+                    label = 'Temperature (°C)';
+                    color = '#EF4444';
+                    unit = '°C';
+                    break;
+                case 'moisture':
+                    data = Array.from({length: 24}, () => 50 + Math.random() * 30);
+                    label = 'Soil Moisture (%)';
+                    color = '#10B981';
+                    unit = '%';
+                    break;
+            }
+            
+            // Calculate stats
+            const min = Math.min(...data).toFixed(1);
+            const max = Math.max(...data).toFixed(1);
+            const avg = (data.reduce((a, b) => a + b, 0) / data.length).toFixed(1);
+            
+            document.getElementById('chartMin').textContent = min + ' ' + unit;
+            document.getElementById('chartAvg').textContent = avg + ' ' + unit;
+            document.getElementById('chartMax').textContent = max + ' ' + unit;
+            
+            if (timeSeriesChart) timeSeriesChart.destroy();
+            
+            timeSeriesChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: hours,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        borderColor: color,
+                        backgroundColor: color + '20',
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 3,
+                        pointHoverRadius: 6
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { 
+                            display: true,
+                            labels: { color: 'var(--text-secondary)' }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => context.parsed.y.toFixed(1) + ' ' + unit
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            ticks: { color: 'var(--text-tertiary)' },
+                            grid: { color: 'var(--border-color)' }
+                        },
+                        y: {
+                            ticks: { color: 'var(--text-tertiary)' },
+                            grid: { color: 'var(--border-color)' }
+                        }
+                    }
+                }
+            });
+        }
+        
+        function loadAlertHistory() {
+            const alerts = [
+                {
+                    time: '15 minutes ago',
+                    type: 'critical',
+                    message: 'Water level exceeded 90cm threshold',
+                    value: '95cm'
+                },
+                {
+                    time: '1 hour ago',
+                    type: 'warning',
+                    message: 'High rainfall detected',
+                    value: '18mm/h'
+                },
+                {
+                    time: '2 hours ago',
+                    type: 'warning',
+                    message: 'Temperature above 35°C',
+                    value: '36°C'
+                },
+                {
+                    time: '4 hours ago',
+                    type: 'info',
+                    message: 'Soil moisture optimal',
+                    value: '65%'
+                },
+                {
+                    time: '6 hours ago',
+                    type: 'critical',
+                    message: 'Flood risk probability high',
+                    value: '78%'
+                }
+            ];
+            
+            const alertsHtml = alerts.map(alert => `
+                <div class="alert alert-${alert.type === 'critical' ? 'critical' : alert.type === 'warning' ? 'warning' : 'info'}">
+                    <div class="alert-header">
+                        <span class="alert-icon">${alert.type === 'critical' ? '🚨' : alert.type === 'warning' ? '⚠️' : 'ℹ️'}</span>
+                        <div class="alert-title">${alert.message}</div>
+                    </div>
+                    <div class="alert-content">
+                        <strong>Value:</strong> ${alert.value}
+                    </div>
+                    <div class="alert-time">${alert.time}</div>
+                </div>
+            `).join('');
+            
+            document.getElementById('alertHistory').innerHTML = alertsHtml;
+            document.getElementById('alertCount').textContent = alerts.length + ' Alerts';
+        }
+        
+        // Countdown timer
+        let countdownInterval;
+        function startCountdown() {
+            let seconds = 300; // 5 minutes
+            
+            countdownInterval = setInterval(() => {
+                seconds--;
+                if (seconds <= 0) {
+                    seconds = 300;
+                    refreshData();
+                }
+                
+                const minutes = Math.floor(seconds / 60);
+                const secs = seconds % 60;
+                document.getElementById('countdown').textContent = 
+                    `(updating in ${minutes}:${secs.toString().padStart(2, '0')})`;
+            }, 1000);
+        }
+        
+        function refreshData() {
+            // Simulate data refresh with small variations
+            const sensor = sensorData[sensorId];
+            sensor.waterLevel += (Math.random() - 0.5) * 5;
+            sensor.rainfall = Math.max(0, sensor.rainfall + (Math.random() - 0.5) * 4);
+            sensor.temperature += (Math.random() - 0.5) * 2;
+            sensor.moisture += (Math.random() - 0.5) * 3;
+            
+            // Constrain values
+            sensor.waterLevel = Math.max(0, Math.min(120, sensor.waterLevel));
+            sensor.temperature = Math.max(20, Math.min(40, sensor.temperature));
+            sensor.moisture = Math.max(0, Math.min(100, sensor.moisture));
+            
+            loadSensorInfo();
+            drawWaterGauge();
+            
+            // Show notification
+            showToast('Data Updated', 'Sensor data refreshed successfully', 'success');
+        }
+        
+        function showToast(title, message, type) {
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type} fade-in`;
+            toast.innerHTML = `
+                <span class="toast-icon">${type === 'success' ? '✓' : type === 'error' ? '✗' : 'ℹ'}</span>
+                <div class="toast-content">
+                    <div class="toast-title">${title}</div>
+                    <div class="toast-message">${message}</div>
+                </div>
+                <button class="toast-close" onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000);
+        }
+        
+        // Dark mode
+        function setupDarkMode() {
+            const toggle = document.getElementById('darkModeToggle');
+            const themeIcon = document.getElementById('themeIcon');
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            
+            document.documentElement.setAttribute('data-theme', currentTheme);
+            themeIcon.textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+            
+            toggle.addEventListener('click', () => {
+                const newTheme = document.documentElement.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+                document.documentElement.setAttribute('data-theme', newTheme);
+                localStorage.setItem('theme', newTheme);
+                themeIcon.textContent = newTheme === 'dark' ? '☀️' : '🌙';
+                
+                // Update charts for dark mode
+                if (timeSeriesChart) {
+                    timeSeriesChart.options.plugins.legend.labels.color = 
+                        newTheme === 'dark' ? '#D1D5DB' : '#4B5563';
+                    timeSeriesChart.update();
+                }
+            });
+        }
+        
+        // Export data function
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const csvData = `Timestamp,Water Level,Rainfall,Temperature,Soil Moisture\n` +
+                Array.from({length: 24}, (_, i) => {
+                    const d = new Date();
+                    d.setHours(d.getHours() - (23 - i));
+                    return `${d.toISOString()},${(60 + Math.random() * 30).toFixed(1)},${(Math.random() * 20).toFixed(1)},${(25 + Math.random() * 10).toFixed(1)},${(50 + Math.random() * 30).toFixed(1)}`;
+                }).join('\n');
+            
+            const blob = new Blob([csvData], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sensor_${sensorId}_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+            
+            showToast('Export Successful', 'Data exported as CSV file', 'success');
+        });
+    </script>
+</body>
+</html>
