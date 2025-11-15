@@ -95,33 +95,7 @@ AiRISE is a comprehensive multi-hazard environmental monitoring dashboard design
 
 ---
 
-## 🚀 Quick Start
-
-### Option 1: Direct Download (Easiest)
-
-1. **Download all files** from the artifacts above
-2. **Create folder structure:**
-   ```
-   airise-dashboard/
-   ├── index.html
-   ├── sensor-detail.html
-   ├── forecast.html
-   ├── risk-map.html
-   ├── css/
-   │   ├── style.css
-   │   ├── dark-mode.css
-   │   └── responsive.css
-   └── js/
-       ├── dashboard.js
-       ├── data.js
-       ├── map.js
-       ├── charts.js
-       └── utils.js
-   ```
-
-3. **Open `index.html`** in your browser
-
-### Option 2: Clone from GitHub
+Clone from GitHub
 
 ```bash
 # Clone repository
@@ -182,75 +156,6 @@ git commit -m "Initial commit - AiRISE Dashboard v1.0"
 git branch -M main
 git push -u origin main
 ```
-
-#### **STEP 3: Enable GitHub Pages**
-
-1. In your repository, click **"Settings"** (⚙️ tab at top)
-2. Scroll to **"Pages"** in left sidebar
-3. Under **"Build and deployment":**
-   - **Source:** Select **"Deploy from a branch"**
-   - **Branch:** Select **"main"**
-   - **Folder:** Select **"/ (root)"**
-4. Click **"Save"**
-5. Wait 1-2 minutes for deployment
-
-#### **STEP 4: Access Your Dashboard**
-
-Your site will be live at:
-```
-https://YOUR_USERNAME.github.io/airise-dashboard/
-```
-
-**Example:** If your username is `johndoe`:
-```
-https://johndoe.github.io/airise-dashboard/
-```
-
-#### **STEP 5: Verify Deployment**
-
-✅ Check the green banner that appears with your URL  
-✅ Click the link to test  
-✅ Test all 4 pages:
-   - `/index.html` (Dashboard)
-   - `/sensor-detail.html?sensor=S001`
-   - `/forecast.html`
-   - `/risk-map.html`
-
----
-
-## 📁 File Structure
-
-```
-airise-dashboard/
-│
-├── index.html                 # Main dashboard page
-├── sensor-detail.html         # Individual sensor monitoring
-├── forecast.html              # 12-hour flood prediction
-├── risk-map.html              # Interactive hazard map
-│
-├── css/
-│   ├── style.css              # Main styles (1000+ lines)
-│   ├── dark-mode.css          # Dark theme variables
-│   └── responsive.css         # Mobile breakpoints
-│
-├── js/
-│   ├── dashboard.js           # Main logic & state management
-│   ├── data.js                # Data simulation engine
-│   ├── map.js                 # Leaflet map integration
-│   ├── charts.js              # Chart.js configurations
-│   └── utils.js               # Helper functions
-│
-├── images/                    # (Optional)
-│   ├── logo.png
-│   └── icons/
-│
-├── README.md                  # This file
-└── LICENSE                    # MIT License
-```
-
-**Total Size:** ~450KB (compressed)
-
----
 
 ## 📖 Usage Guide
 
@@ -378,36 +283,6 @@ const state = {
 
 ---
 
-## 🔧 Troubleshooting
-
-### Dashboard not loading?
-
-1. Check browser console (F12)
-2. Verify all files are in correct folders
-3. Ensure CDN links are accessible
-4. Try hard refresh: `Ctrl+Shift+R` (Windows) or `Cmd+Shift+R` (Mac)
-
-### GitHub Pages 404 Error?
-
-1. Ensure repository is **Public**
-2. Check file is named exactly `index.html` (lowercase)
-3. Wait 5-10 minutes after enabling Pages
-4. Clear browser cache
-
-### Map not showing?
-
-1. Check internet connection (map tiles from CDN)
-2. Verify Leaflet.js CDN is loaded
-3. Check browser console for errors
-
-### Dark mode not persisting?
-
-1. Ensure browser allows localStorage
-2. Check privacy/incognito mode isn't clearing storage
-3. Verify `localStorage.setItem('theme', ...)` works in console
-
----
-
 ## 🤝 Contributing
 
 We welcome contributions! Here's how:
@@ -495,10 +370,6 @@ MIT License - see [LICENSE](LICENSE) file
 - **SEO Ready:** Yes
 
 ---
-
-## 🏆 Awards & Recognition
-
-*Built for International Geospatial Competitions*
 
 ---
 
